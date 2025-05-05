@@ -1,37 +1,65 @@
 import streamlit as st
 import pandas as pd
 
-st.title("💸 Prize Bond Checker")
+def check_matches(results_df, test_list_df):
+    test_numbers = pd.unique(test_list_df.values.ravel())
+    test_numbers = [num for num in test_numbers if str(num).strip().lower() != 'nan']
 
-# Upload Test List
-uploaded_file = st.file_uploader("Please upload an Excel file containing all your Prize Bond numbers", type=["xlsx"])
+    matches = []
+    any_match = False
 
-if uploaded_file:
-    try:
-        # Load fixed Results file
-        results_df = pd.read_excel("Results.xlsx", dtype=str)
-        test_list_df = pd.read_excel(uploaded_file, dtype=str)
+    for number in test_numbers:
+        number = str(number).strip()
+        for column in results_df.columns:
+            matches_found = results_df[results_df[column] == number]
+            
+            if not matches_found.empty:
+                draw_number = column
+                matches.append({
+                    'message': f'Congratulations! Your number {number} won!',
+                    'draw_number': draw_number,
+                    'winning_number': number
+                })
+                any_match = True
+                break  # Stop checking other columns for this number
 
-        # Clean both files
-        results_df = results_df.astype(str).apply(lambda col: col.str.strip())
-        test_list_df = test_list_df.astype(str).apply(lambda col: col.str.strip())
+    if not any_match:
+        matches.append({
+            'message': "No winning numbers found this time. You will win next time, In Sha Allah!"
+        })
 
-        # Flatten and deduplicate test numbers
-        test_numbers = pd.unique(test_list_df.values.ravel())
-        any_match = False
+    return matches
 
-        st.write("### 🎯 Matching Results:")
-        for number in test_numbers:
-            if number == "" or number.lower() == "nan":
-                continue
-            for idx, column in enumerate(results_df.columns):
-                if number in results_df[column].values:
-                    st.success(f'{number} found in Result file column {idx + 1}')
-                    any_match = True
-                    break
 
-        if not any_match:
-            st.warning("You will Win Next Time, In Sha Allah ✨")
+def main():
+    st.title("Prize Bond Match Checker")
 
-    except Exception as e:
-        st.error(f"Error: {e}")
+    # File upload
+    results_file = st.file_uploader("Upload the Results File", type=["xlsx"])
+    test_list_file = st.file_uploader("Upload your Test List File", type=["xlsx"])
+
+    if results_file and test_list_file:
+        try:
+            # Load and clean the Excel files
+            results_df = pd.read_excel(results_file, dtype=str).apply(lambda col: col.astype(str).str.strip())
+            test_list_df = pd.read_excel(test_list_file, dtype=str).apply(lambda col: col.astype(str).str.strip())
+
+            # Check for matches
+            matches = check_matches(results_df, test_list_df)
+
+            # Display results
+            for match in matches:
+                st.write('-' * 40)
+                st.write(match['message'])
+                if 'draw_number' in match:
+                    st.write(f'Draw Number: {match["draw_number"]}')
+                    st.write(f'Winning Number: {match["winning_number"]}')
+                st.write('-' * 40)
+
+        except FileNotFoundError as e:
+            st.error(f"Error: File not found - {e}")
+        except Exception as e:
+            st.error(f"An unexpected error occurred: {e}")
+
+if __name__ == "__main__":
+    main()
