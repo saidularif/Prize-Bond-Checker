@@ -4,7 +4,7 @@ import pandas as pd
 st.title("💸 Prize Bond Checker")
 
 # Upload Test List
-uploaded_file = st.file_uploader("Upload your Test List Excel file", type=["xlsx"])
+uploaded_file = st.file_uploader("Please upload an Excel file containing all your Prize Bond numbers", type=["xlsx"])
 
 if uploaded_file:
     try:
